@@ -38,8 +38,8 @@ let bodySizes = {
 }
 let arm1Sizes = {
     height: 4,
-    boneCount: 2,
-    boneHeight: 4 / 3
+    boneCount: 8,
+    boneHeight: 4 / 8
 }
 // Geometries
 
@@ -48,141 +48,96 @@ const arm1Geometry = new THREE.CylinderGeometry(0.5, 0.5, arm1Sizes.height, 10, 
 
 // create the skin indices and skin weights
 
-const bodyPosition = bodyGeometry.attributes.position;
-const arm1Position = arm1Geometry.attributes.position;
 
+const skinGenerator =(sizingObject, geometryObject)=>{
+    const geometryPositions= geometryObject.attributes.position
+    const meshSkinIndices = [];
+    const meshSkinWeights = [];
+    for (let g = 0; g < geometryPositions.count; g++) {
+        const vertex = new THREE.Vector3()
 
-const bodyVertex = new THREE.Vector3();
+        vertex.fromBufferAttribute(geometryPositions, g);
+        // compute skinIndex and skinWeight based on some configuration data
 
-const bodySkinIndices = [];
-const bodySkinWeights = [];
+        const y = (vertex.y + sizingObject.height / 2);
 
-for (let i = 0; i < bodyPosition.count; i++) {
+        const skinIndex = Math.floor(y / sizingObject.boneHeight);
+        const skinWeight = (y % sizingObject.boneHeight) / sizingObject.boneHeight;
 
-    bodyVertex.fromBufferAttribute(bodyPosition, i);
-    // compute skinIndex and skinWeight based on some configuration data
+        meshSkinIndices.push(skinIndex, skinIndex + 1, 0, 0);
+        meshSkinWeights.push(1 - skinWeight, skinWeight, 0, 0);
 
-    const y = (bodyVertex.y + bodySizes.height / 2);
-
-    const skinIndex = Math.floor(y / bodySizes.boneHeight);
-    const skinWeight = (y % bodySizes.boneHeight) / bodySizes.boneHeight;
-
-    bodySkinIndices.push(skinIndex, skinIndex + 1, 0, 0);
-    bodySkinWeights.push(1 - skinWeight, skinWeight, 0, 0);
-
-}
-bodyGeometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(bodySkinIndices, 4));
-bodyGeometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(bodySkinWeights, 4));
-const arm1SkinIndices = [];
-const arm1SkinWeights = [];
-const vertex = new THREE.Vector3()
-for (let g = 0; g < arm1Position.count; g++) {
-
-    vertex.fromBufferAttribute(arm1Position, g);
-    // compute skinIndex and skinWeight based on some configuration data
-
-    const y = (vertex.y + arm1Sizes.height / 2);
-
-    const skinIndex = Math.floor(y / arm1Sizes.boneHeight);
-    const skinWeight = (y % arm1Sizes.boneHeight) / arm1Sizes.boneHeight;
-
-    arm1SkinIndices.push(skinIndex, skinIndex + 1, 0, 0);
-    arm1SkinWeights.push(1 - skinWeight, skinWeight, 0, 0);
+    }
+    geometryObject.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(meshSkinIndices, 4));
+    geometryObject.setAttribute('skinWeight', new THREE.Float32BufferAttribute(meshSkinWeights, 4));
 
 }
 
-arm1Geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(arm1SkinIndices, 4));
-arm1Geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(arm1SkinWeights, 4));
-
-
+skinGenerator(bodySizes, bodyGeometry)
+skinGenerator(arm1Sizes, arm1Geometry)
 
 // Meshes
 
 const bodyMesh = new THREE.SkinnedMesh(bodyGeometry, material);
 const arm1Mesh = new THREE.SkinnedMesh(arm1Geometry, material);
-
+arm1Mesh.rotation.z= Math.PI / 2
 // Bones
 
-const boneArr = [];
+// except first bone
+const verticalBoneGenerator = (sizingObject,bonesArray) =>{
+    for (let z = 0; z < sizingObject.boneCount; z++) {
+        const boneEl = new THREE.Bone();
+        boneEl.position.y = sizingObject.boneHeight;
+        bonesArray[bonesArray.length - 1].add(boneEl);
+        bonesArray.push(boneEl)
+    }
+}
+
+const bodyBones = [];
 const firstBone = new THREE.Bone();
 firstBone.position.y = -bodySizes.height / 2;
 
-boneArr.push(firstBone)
+bodyBones.push(firstBone)
 
-for (let z = 0; z < bodySizes.boneCount; z++) {
-    const boneEl = new THREE.Bone();
-    boneEl.position.y = bodySizes.boneHeight;
-    boneArr[boneArr.length - 1].add(boneEl);
-    boneArr.push(boneEl)
-}
+verticalBoneGenerator(bodySizes, bodyBones)
 
 
-const skeleton = new THREE.Skeleton(boneArr);
+
+const skeleton = new THREE.Skeleton(bodyBones);
 const rootBone = skeleton.bones[0];
-
-
-// First arm
-const armRoot = boneArr[30]
-
-
-const arm1Bones = []
-
-const shoulder1 = new THREE.Bone()
-arm1Bones.push(shoulder1)
-shoulder1.position.x = -1
-
-const elbow1 = new THREE.Bone()
-arm1Bones.push(elbow1)
-elbow1.position.x = -1
-const wrist1 = new THREE.Bone()
-arm1Bones.push(wrist1)
-wrist1.position.x = -1
-
-
-armRoot.add(shoulder1)
-shoulder1.add(elbow1)
-elbow1.add(wrist1)
-const arm1Skeleton = new THREE.Skeleton(arm1Bones)
-
-// Second arm
-const arm2Bones = []
-arm2Bones.push(armRoot)
-
-const shoulder2 = new THREE.Bone()
-shoulder2.position.x = 1
-arm2Bones.push(shoulder2)
-
-const elbow2 = new THREE.Bone()
-elbow2.position.x = 1
-arm2Bones.push(elbow2)
-const wrist2 = new THREE.Bone()
-wrist2.position.x = 1
-arm2Bones.push(wrist2)
-
-
-
-
-armRoot.add(shoulder2)
-shoulder2.add(elbow2)
-elbow2.add(wrist2)
-const arm2Skeleton = new THREE.Skeleton(arm2Bones)
 
 // setting root bones
 bodyMesh.add(rootBone);
-arm1Mesh.add(shoulder1);
+bodyMesh.bind(skeleton);
 
 
+// First arm
+
+
+
+const arm1Bones = []
+// const arm1FirstBone = new THREE.Bone()
+const arm1FirstBone = new THREE.Bone()
+arm1FirstBone.position.y= -arm1Sizes.height/2
+
+arm1Bones.push(arm1FirstBone)
+
+verticalBoneGenerator(arm1Sizes, arm1Bones )
+
+
+const arm1Skeleton = new THREE.Skeleton(arm1Bones)
 
 // bind the skeleton to the bodyMesh
 
-bodyMesh.bind(skeleton);
+arm1Mesh.add(arm1Skeleton.bones[0]);
 arm1Mesh.bind(arm1Skeleton)
-
 scene.add(bodyMesh)
 scene.add(arm1Mesh)
 
 const skHelper = new THREE.SkeletonHelper(bodyMesh)
 scene.add(skHelper)
+const skArmHelper = new THREE.SkeletonHelper(arm1Mesh)
+scene.add(skArmHelper)
 
 // Lights
 
@@ -242,6 +197,8 @@ scene.add(camera)
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
 
+
+
 /**
  * Renderer
  */
@@ -258,33 +215,24 @@ const clock = new THREE.Clock()
 const tick = () => {
 
     const elapsedTime = clock.getElapsedTime()
-    //bodyMesh.skeleton.bones[1].rotation.z = -Math.sin(elapsedTime*5)
-    //skeleton.bones[2].rotation.x = -Math.sin(elapsedTime*5)
-    //skeleton.bones[2].rotation.y =
-    //skeleton.bones[3].rotation.x = Math.sin(elapsedTime*5)
-    //skeleton.bones[3].rotation.y = Math.sin(elapsedTime*5)
-    //skeleton.bones[].position.x = Math.sin(elapsedTime)*2
-
 
     bodyMesh.skeleton.bones.slice(1).forEach((bone, index) => {
         let multiplier = index < bodySizes.boneCount / 2 ? -2 : +4.6;
         bone.rotation.z = Math.PI / bodySizes.boneCount * Math.sin((elapsedTime * multiplier) - index / 5)
 
     })
+    arm1Mesh.skeleton.bones[0].rotation.z = 6.6666*bodyMesh.skeleton.bones[30].rotation.z
 
-    arm1Skeleton.bones.forEach(bone => {
+    arm1Skeleton.bones.slice(2).forEach(bone => {
 
-        bone.rotation.z = Math.PI / 4 * Math.sin((elapsedTime * 4))
+        bone.rotation.z = Math.PI / 15 * Math.sin((elapsedTime * 4))
     })
-    arm2Skeleton.bones.forEach(bone => {
+    bodyMesh.skeleton.bones[0].rotation.y += 0.02
 
-        bone.rotation.z = Math.PI / 4 * Math.sin((elapsedTime * 4))
-    })
-    // bodyMesh.skeleton.bones[0].rotation.y += 0.02
+    arm1Mesh.position.x = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).x-2
+    arm1Mesh.position.y = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).y
+    arm1Mesh.position.z = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).z
 
-    // Update objects
-    //sphere.rotation.y = .5 * elapsedTime
-    //bodyMesh.skeleton.bones[ 0 ].position.x += 0.2;
     // Update Orbital Controls
     controls.update()
 
