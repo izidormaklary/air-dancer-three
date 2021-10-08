@@ -7,7 +7,6 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import {AnimationMixer} from "three";
 
 
-
 // Debug
 const gui = new dat.GUI()
 RectAreaLightUniformsLib.init()
@@ -48,14 +47,14 @@ let arm1Sizes = {
 // Geometries
 
 const bodyGeometry = new THREE.CylinderGeometry(1, 1, bodySizes.height, 20, bodySizes.boneCount, false, 30);
-const arm1Geometry = new THREE.CylinderGeometry(0.5, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, false, 30);
+const arm1Geometry = new THREE.CylinderGeometry(0.3, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, false, 30);
 const arm2Geometry = new THREE.CylinderGeometry(0.5, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, false, 30);
 
 // create the skin indices and skin weights
 
 
-const skinGenerator =(sizingObject, geometryObject)=>{
-    const geometryPositions= geometryObject.attributes.position
+const skinGenerator = (sizingObject, geometryObject) => {
+    const geometryPositions = geometryObject.attributes.position
     const meshSkinIndices = [];
     const meshSkinWeights = [];
     for (let g = 0; g < geometryPositions.count; g++) {
@@ -85,13 +84,13 @@ skinGenerator(arm1Sizes, arm1Geometry)
 
 const bodyMesh = new THREE.SkinnedMesh(bodyGeometry, material);
 const arm1Mesh = new THREE.SkinnedMesh(arm1Geometry, material);
-arm1Mesh.rotation.z= Math.PI / 2
+arm1Mesh.rotation.z = Math.PI / 2
 const arm2Mesh = new THREE.SkinnedMesh(arm1Geometry, material);
-arm2Mesh.rotation.z= -Math.PI / 2
+arm2Mesh.rotation.z = -Math.PI / 2
 // Bones
 
 // except first bone
-const verticalBoneGenerator = (sizingObject,bonesArray) =>{
+const verticalBoneGenerator = (sizingObject, bonesArray) => {
     for (let z = 0; z < sizingObject.boneCount; z++) {
         const boneEl = new THREE.Bone();
         boneEl.position.y = sizingObject.boneHeight;
@@ -123,11 +122,11 @@ const arm1Bones = []
 
 const arm1FirstBone = new THREE.Bone()
 
-arm1FirstBone.position.y= -arm1Sizes.height/2
+arm1FirstBone.position.y = -arm1Sizes.height / 2
 
 arm1Bones.push(arm1FirstBone)
 
-verticalBoneGenerator(arm1Sizes, arm1Bones )
+verticalBoneGenerator(arm1Sizes, arm1Bones)
 
 const arm1Skeleton = new THREE.Skeleton(arm1Bones)
 
@@ -139,18 +138,17 @@ arm1Mesh.bind(arm1Skeleton)
 scene.add(arm1Mesh)
 
 
-
 // Second arm
 
 const arm2Bones = []
 
 const arm2FirstBone = new THREE.Bone()
 
-arm2FirstBone.position.y= -arm1Sizes.height/2
+arm2FirstBone.position.y = -arm1Sizes.height / 2
 
 arm2Bones.push(arm2FirstBone)
 
-verticalBoneGenerator(arm1Sizes, arm2Bones )
+verticalBoneGenerator(arm1Sizes, arm2Bones)
 
 const arm2Skeleton = new THREE.Skeleton(arm2Bones)
 
@@ -228,7 +226,6 @@ const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
 
 
-
 /**
  * Renderer
  */
@@ -243,65 +240,51 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  */
 
 // set up rotation about z axis
-const zAxis = new THREE.Vector3( 0, 0, 1 );
+const zAxis = new THREE.Vector3(0, 0, 1);
 
 
 // lean left
-const initialRotation = new THREE.Quaternion().setFromAxisAngle( zAxis, 0 );
-const finalRotationLeft = new THREE.Quaternion().setFromAxisAngle( zAxis, Math.PI/(bodySizes.boneCount/3) );
+const initialRotation = new THREE.Quaternion().setFromAxisAngle(zAxis, 0);
+const finalRotationLeft = new THREE.Quaternion().setFromAxisAngle(zAxis, Math.PI / (bodySizes.boneCount / 3));
 
 // Generate Keyframes
 
-const KFCount = 3
+const KFCount = 2
 const KFIndexArr = []
 const quaternionValueArr = []
-for (let i = 0; i< KFCount; i++){
+for (let i = 0; i < KFCount; i++) {
 
-    KFIndexArr.push(i+1 )
+    KFIndexArr.push(i + 1)
 
-    if (i%2===0){
-        quaternionValueArr.push( initialRotation.x, initialRotation.y, initialRotation.z, initialRotation.w)
-    }else{
-        quaternionValueArr.push( finalRotationLeft.x, finalRotationLeft.y, finalRotationLeft.z, finalRotationLeft.w)
+    if (i % 2 === 0) {
+        quaternionValueArr.push(initialRotation.x, initialRotation.y, initialRotation.z, initialRotation.w)
+    } else {
+        quaternionValueArr.push(finalRotationLeft.x, finalRotationLeft.y, finalRotationLeft.z, finalRotationLeft.w)
     }
 }
-console.log(quaternionValueArr)
 
 
-const rotationKFLeft = new THREE.QuaternionKeyframeTrack( '.quaternion', KFIndexArr, quaternionValueArr );
 
-
+const rotationKFLeft = new THREE.QuaternionKeyframeTrack('.quaternion', KFIndexArr, quaternionValueArr);
 
 
 // create an animation sequence with the tracks
 // If a negative time value is passed, the duration will be calculated from the times of the passed tracks array
-const clip = new THREE.AnimationClip( 'Action', KFCount, [rotationKFLeft] );
+const clip = new THREE.AnimationClip('Action', KFCount, [rotationKFLeft]);
 
 // setup the THREE.AnimationMixer1
 
 
 // const animationGroup = new THREE.AnimationObjectGroup(...bodyBones.slice(1, bodySizes.boneCount-2))
 const bodyBonesMixerArr = []
-for ( let i = 1; i< bodyBones.length-1; i+=3) {
-    const mixer = new THREE.AnimationMixer( bodyBones[i])
+for (let i = 1; i < bodyBones.length - 1; i += 1) {
+    const mixer = new THREE.AnimationMixer(bodyBones[i])
     const clipAction = mixer.clipAction(clip)
-
-    // each clips duration is 5
-
-    // the delay should be incremented at each bone
-    const delay = i/10
-    console.log(delay)
-    // the delay should be substracted from the duration
-
-    clipAction.setDuration(5-delay)
-    clipAction.startAt(delay)
-
-    // clipAction.startAt(KFCount*i/100)
-    bodyBonesMixerArr.push({mixer:mixer, clipAction: clipAction})
-
-    clipAction.play()
+    clipAction.setDuration(0.2)
     clipAction.setLoop(THREE.LoopPingPong, 1)
-    clipAction.loop = true
+    // clipAction.startAt(KFCount*i/100)
+
+    bodyBonesMixerArr.push({mixer: mixer, clipAction: clipAction})
 
 }
 
@@ -310,20 +293,37 @@ for ( let i = 1; i< bodyBones.length-1; i+=3) {
 // // create a ClipAction and set it to play
 // const clipAction = mixer.clipAction( clip );
 // clipAction.play();
-bodyBonesMixerArr.forEach(obj=>{
-obj.mixer.addEventListener( 'finished', (e)=>{
+
+let animationStatus = false
+console.log(bodyBonesMixerArr[bodyBonesMixerArr.length - 1].mixer)
+bodyBonesMixerArr[bodyBonesMixerArr.length - 1].mixer.addEventListener('finished', (e) => {
+    console.log("ready")
+    animationStatus = false
     // obj.mixer.uncacheAction(obj.clipAction)
     // obj.clipAction.stop().play()
 });
-})
+
+
+const startAnimationsAt = (index) => {
+
+    bodyBonesMixerArr.slice(index).forEach((obj, index) => {
+        setTimeout(() => {
+            obj.clipAction.reset()
+
+            obj.clipAction.play()
+        }, index * 100)
+    })
+}
+
 const clock = new THREE.Clock()
 
 
 const stats = new Stats();
-document.body.appendChild( stats.dom );
+document.body.appendChild(stats.dom);
+
 function animate() {
 
-    window.requestAnimationFrame( animate );
+    window.requestAnimationFrame(animate);
 
     render();
 
@@ -348,8 +348,8 @@ const render = () => {
     // bodyMesh.skeleton.bones[boneIndex-1].rotation.z = 0
     // bodyMesh.skeleton.bones[boneIndex].rotation.z = 2
     // console.log(boneIndex)
-    arm1Mesh.skeleton.bones[0].rotation.z = 60*bodyMesh.skeleton.bones[30].quaternion.z-0.5
-    arm2Mesh.skeleton.bones[0].rotation.z = 60*bodyMesh.skeleton.bones[30].quaternion.z+0.5
+    arm1Mesh.skeleton.bones[0].rotation.z = 60 * bodyMesh.skeleton.bones[30].quaternion.z - 0.5
+    arm2Mesh.skeleton.bones[0].rotation.z = 60 * bodyMesh.skeleton.bones[30].quaternion.z + 0.5
 
     // arm1Skeleton.bones.slice(3).forEach(bone => {
     //
@@ -363,8 +363,7 @@ const render = () => {
     // bodyMesh.skeleton.bones[0].rotation.y += 0.02
 
     const delta = clock.getDelta();
-    if ( bodyBonesMixerArr ) {
-        let random = Math.floor(Math.random() * bodyBonesMixerArr.length);
+    if (bodyBonesMixerArr) {
 
         bodyBonesMixerArr.forEach(el => {
                 el.mixer.update((delta))
@@ -373,10 +372,17 @@ const render = () => {
 
     }
 
-    arm1Mesh.position.x = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).x-2
+    if (!animationStatus) {
+        animationStatus = true
+        let random = Math.floor(Math.random() * bodyBonesMixerArr.length);
+        console.log(random)
+        startAnimationsAt(random)
+    }
+
+    arm1Mesh.position.x = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).x - 2
     arm1Mesh.position.y = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).y
     arm1Mesh.position.z = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).z
-    arm2Mesh.position.x = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).x+2
+    arm2Mesh.position.x = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).x + 2
     arm2Mesh.position.y = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).y
     arm2Mesh.position.z = bodyMesh.skeleton.bones[30].getWorldPosition(new THREE.Vector3()).z
 
