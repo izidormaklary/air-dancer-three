@@ -98,21 +98,7 @@ const arm1Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm1Mesh.rotation.z = Math.PI / 2
 const arm2Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm2Mesh.rotation.z = -Math.PI / 2
-
-
-// Hair generator
-const hairGroup = new THREE.Group()
-
-for (let i = 0; i < hairSizes.count; i++){
-    const hairMesh = new THREE.Mesh(hairGeometry, material)
-    hairMesh.rotation.y= Math.PI/(hairSizes.count/2)*i
-    // hairMesh.rotateOnWorldAxis( new THREE.Vector3(0,1,0), Math.PI/ i)
-    hairMesh.translateOnAxis(new THREE.Vector3(0,0,1), 1)
-    hairGroup.add(hairMesh)
-}
-
-
-
+const hairMeshSample = new THREE.Mesh(hairGeometry, material)
 
 // Bones
 
@@ -194,14 +180,27 @@ arm2Mesh.rotation.z = -Math.PI / 3
 bodyMesh.skeleton.bones[30].add(arm1Mesh)
 bodyMesh.skeleton.bones[30].add(arm2Mesh)
 
+// Hair generator
+const hairGroup = new THREE.Group()
+
+for (let i = 0; i < hairSizes.count; i++){
+    const hairMesh = hairMeshSample.clone()
+    hairMesh.rotation.y= Math.PI/(hairSizes.count/2)*i
+    hairMesh.translateOnAxis(new THREE.Vector3(0,0,1), 1)
+    // hairGroup.add(hairMesh)
+    // scene.add(hairMesh)
+    // bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairMesh)
+}
+
+
 // Binding hair to body
-scene.add(hairGroup)
+// scene.add(hairGroup)
 // hairGroup.position.y= hairSizes.height/2
 
 
 
 
-bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairGroup)
+// bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairGroup)
 
 
 
