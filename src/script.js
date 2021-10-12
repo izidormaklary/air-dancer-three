@@ -31,6 +31,7 @@ material.side = THREE.DoubleSide
 material.skinning = true
 material.specular = new THREE.Color(0xFFCAF9)
 material.emissive = new THREE.Color(0x25252)
+// material.clipIntersection = true
 // material.wireframe= true
 
 // Sizes
@@ -46,20 +47,21 @@ let arm1Sizes = {
     boneHeight: 4 / 8
 }
 let hairSizes = {
-    height: 0.8,
-    boneCount: 10,
-    boneHeight: 0.8/10,
+    height: .8,
+    boneCount: 3,
+    boneHeight: .8/3,
     width: 0.2,
     count: 28
 }
 // Geometries
 
-const bodyGeometry = new THREE.CylinderGeometry(1, 1, bodySizes.height, 20, bodySizes.boneCount, false, 30);
-const armGeometry = new THREE.CylinderGeometry(0.3, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, false, 30);
+const bodyGeometry = new THREE.CylinderBufferGeometry(1, 1, bodySizes.height, 20, bodySizes.boneCount, true, 30);
+const armGeometry = new THREE.CylinderBufferGeometry(0.3, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, true, 30);
 
 
 
-const hairGeometry = new THREE.PlaneGeometry(hairSizes.width, hairSizes.height, 1, 10)
+const hairGeometry = new THREE.PlaneBufferGeometry(hairSizes.width, hairSizes.height, 1, 9)
+
 // create the skin indices and skin weights
 
 
@@ -89,7 +91,7 @@ const skinGenerator = (sizingObject, geometryObject) => {
 
 skinGenerator(bodySizes, bodyGeometry)
 skinGenerator(arm1Sizes, armGeometry)
-// skinGenerator(hairSizes, hairGeometry)
+skinGenerator(hairSizes, hairGeometry)
 
 // Meshes
 
@@ -98,7 +100,7 @@ const arm1Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm1Mesh.rotation.z = Math.PI / 2
 const arm2Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm2Mesh.rotation.z = -Math.PI / 2
-const hairMeshSample = new THREE.Mesh(hairGeometry, material)
+const hairMeshSample = new THREE.SkinnedMesh(hairGeometry, material)
 
 // Bones
 
@@ -148,7 +150,7 @@ const arm1Skeleton = new THREE.Skeleton(arm1Bones)
 
 arm1Mesh.add(arm1Skeleton.bones[0]);
 arm1Mesh.bind(arm1Skeleton)
-scene.add(arm1Mesh)
+// scene.add(arm1Mesh)
 
 
 // Second arm
@@ -170,38 +172,62 @@ const arm2Skeleton = new THREE.Skeleton(arm2Bones)
 
 arm2Mesh.add(arm2Skeleton.bones[0]);
 arm2Mesh.bind(arm2Skeleton)
-scene.add(arm2Mesh)
+// scene.add(arm2Mesh)
 
 // Binding arms to body
 arm1Mesh.position.x = -2
 arm2Mesh.position.x = 2
 arm1Mesh.rotation.z = Math.PI / 3
 arm2Mesh.rotation.z = -Math.PI / 3
+
+
 bodyMesh.skeleton.bones[30].add(arm1Mesh)
 bodyMesh.skeleton.bones[30].add(arm2Mesh)
 
 // Hair generator
 const hairGroup = new THREE.Group()
 
+
+
+
+
 for (let i = 0; i < hairSizes.count; i++){
+    const hairBones = []
+
+    const hairFirstBone = new THREE.Bone()
+
+    hairFirstBone.position.y = -hairSizes.height / 2
+
+    hairBones.push(hairFirstBone)
+
+    verticalBoneGenerator(hairSizes, hairBones)
+
+    const hairSkeleton = new THREE.Skeleton(hairBones)
+
     const hairMesh = hairMeshSample.clone()
+
+    hairMesh.add(hairSkeleton.bones[0])
+    hairMesh.bind(hairSkeleton)
+
+    // const skHelper = new THREE.SkeletonHelper(hairMesh)
+    // scene.add(skHelper)
+
+
     hairMesh.rotation.y= Math.PI/(hairSizes.count/2)*i
     hairMesh.translateOnAxis(new THREE.Vector3(0,0,1), 1)
-    // hairGroup.add(hairMesh)
     // scene.add(hairMesh)
+    // hairMesh.bind(bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1])
+    hairGroup.add(hairMesh)
     // bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairMesh)
 }
 
 
 // Binding hair to body
 // scene.add(hairGroup)
-// hairGroup.position.y= hairSizes.height/2
+hairGroup.position.y= hairSizes.height/2
 
-
-
-
-// bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairGroup)
-
+bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairGroup)
+// hairGroup.bind(bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1])
 
 
 // Skeleton Helpers
@@ -419,7 +445,14 @@ const render = () => {
     arm2Skeleton.bones.slice(3).forEach((bone, index) => {
         bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime()*10+index))
     })
-    bodyMesh.skeleton.bones[0].rotation.y += 0.02
+    // bodyMesh.skeleton.bones[0].rotation.y += 0.02
+    //
+    hairGroup.children.forEach((hair, index)=>{
+        hair.skeleton.bones.slice(0).forEach(bone=>{
+            bone.rotation.x = Math.PI/hairSizes.boneCount *(Math.sin( clock.getElapsedTime()*10+index) /5)
+        })
+    })
+
     if (animationStatus) {
 
         bodyBonesMixerArr.forEach(el => {
