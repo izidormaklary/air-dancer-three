@@ -64,7 +64,6 @@ const skinGenerator = (sizingObject, geometryObject) => {
     const meshSkinWeights = [];
     for (let g = 0; g < geometryPositions.count; g++) {
         const vertex = new THREE.Vector3();
-
         vertex.fromBufferAttribute(geometryPositions, g);
         const y = (vertex.y + sizingObject.height / 2);
         const skinIndex = Math.floor(y / sizingObject.boneHeight);
@@ -84,45 +83,44 @@ skinGenerator(hairSizes, hairGeometry);
 
 // Meshes
 
-const bodyMeshTemp = new THREE.SkinnedMesh(bodyGeometry, material);
 const bodyMesh = new THREE.SkinnedMesh(bodyGeometry, material);
 const arm1Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm1Mesh.rotation.z = Math.PI / 2;
 const arm2Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm2Mesh.rotation.z = -Math.PI / 2;
 
-// Bones
 
+// Method to create skeletons for meshes based on the sizing object
 const meshSkeletonSetup = (sizingObject, mesh) => {
+
+    // First bone relatively positioned to the mesh (on the bottom)
     const tempBoneArr = [];
     const firstBone = new THREE.Bone();
     firstBone.position.y = -sizingObject.height / 2;
+
     tempBoneArr.push(firstBone);
     for (let z = 0; z < sizingObject.boneCount; z++) {
+        // other bones relatively positioned to the previous bone in the array
         const boneEl = new THREE.Bone();
         boneEl.position.y = sizingObject.boneHeight;
         tempBoneArr[tempBoneArr.length - 1].add(boneEl);
         tempBoneArr.push(boneEl);
     }
-    ;
 
+    // binding skeleton and its root bone to the mesh
     const skeleton = new THREE.Skeleton(tempBoneArr);
     mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
-}
+};
 
+// Body as the "parent" gets added directly to the scene
 meshSkeletonSetup(bodySizes, bodyMesh);
 scene.add(bodyMesh);
 
-
-// First arm mesh and skeleton setup
-
 meshSkeletonSetup(armSizes, arm1Mesh);
-
-
 meshSkeletonSetup(armSizes, arm2Mesh);
 
-// Binding arms to body
+// Binding arms to the body
 arm1Mesh.position.x = -2;
 arm2Mesh.position.x = 2;
 arm1Mesh.rotation.z = Math.PI / 3;
@@ -134,20 +132,22 @@ bodyMesh.skeleton.bones[30].add(arm2Mesh);
 // Hair generator
 const hairGroup = new THREE.Group();
 
-
 for (let i = 0; i < hairSizes.count; i++) {
-    const hairMesh = new THREE.SkinnedMesh(hairGeometry, material);
 
+    // creating mesh with skeleton based on the plane geometry
+    const hairMesh = new THREE.SkinnedMesh(hairGeometry, material);
     meshSkeletonSetup(hairSizes, hairMesh);
 
+    // setting rotation first then moving it outwards so each plane is aligned along the cylinders edge
     hairMesh.rotation.y = Math.PI / (hairSizes.count / 2) * i;
     hairMesh.translateOnAxis(new THREE.Vector3(0, 0, 1), 1);
 
+    // grouping hair "strings"
     hairGroup.add(hairMesh);
 }
 
 
-// Binding hair to body
+// Binding hair group to body
 hairGroup.position.y = hairSizes.height / 2 - 0.05;
 bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length - 1].add(hairGroup);
 
@@ -215,9 +215,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
  * Animate
  */
 
-// set up rotation about z axis
+// rotations on z axis
 const zAxis = new THREE.Vector3(0, 0, 1);
-
 
 const initialRotation = new THREE.Quaternion().setFromAxisAngle(zAxis, 0);
 const finalRotationLeft = new THREE.Quaternion().setFromAxisAngle(zAxis, Math.PI / (bodySizes.boneCount / 2));
@@ -226,23 +225,28 @@ const finalRotationRight = new THREE.Quaternion().setFromAxisAngle(zAxis, Math.P
 // Generate Keyframes
 
 const KFCount = 3;
-const KFIndexArr = [];
+
+// 2 arrays representing rotation values (in groups of four: x, y, z, w)
 const quaternionValueArrLeft = [];
 const quaternionValueArrRight = [];
-for (let i = 0; i < KFCount; i++) {
 
+// number of groups
+const KFIndexArr = [];
+for (let i = 0; i < KFCount; i++) {
     KFIndexArr.push(i + 1);
 
+    // even keyframe is a non-rotated value group
     if (i % 2 === 0) {
         quaternionValueArrLeft.push(initialRotation.x, initialRotation.y, initialRotation.z, initialRotation.w);
         quaternionValueArrRight.push(initialRotation.x, initialRotation.y, initialRotation.z, initialRotation.w);
     } else {
+        // odd keyframes are rotated value groups in either direction
         quaternionValueArrLeft.push(finalRotationLeft.x, finalRotationLeft.y, finalRotationLeft.z, finalRotationLeft.w);
         quaternionValueArrRight.push(finalRotationRight.x, finalRotationRight.y, finalRotationRight.z, finalRotationRight.w);
     }
 }
 
-
+// creating keyframe tracks then clips
 const rotationKFLeft = new THREE.QuaternionKeyframeTrack('.quaternion', KFIndexArr, quaternionValueArrLeft);
 const rotationKFRight = new THREE.QuaternionKeyframeTrack('.quaternion', KFIndexArr, quaternionValueArrRight);
 
@@ -252,6 +256,8 @@ const clipRight = new THREE.AnimationClip('right', KFCount, [rotationKFRight]);
 
 
 const bodyBonesMixerArr = []
+
+// mixer array for each bone in the body and with both clips
 for (let i = 1; i < bodyMesh.skeleton.bones.length - 1; i += 1) {
     const mixer = new THREE.AnimationMixer(bodyMesh.skeleton.bones[i]);
     const clipActionLeft = mixer.clipAction(clipLeft);
@@ -263,14 +269,18 @@ for (let i = 1; i < bodyMesh.skeleton.bones.length - 1; i += 1) {
     bodyBonesMixerArr.push({mixer: mixer, clipActionLeft: clipActionLeft, clipActionRight: clipActionRight});
 }
 
+
+// animation logic: if status is false start animation
 let animationStatus = false;
+
+// when animation is finished set status to false, so it restarts
 bodyBonesMixerArr[bodyBonesMixerArr.length - 1].mixer.addEventListener('finished', (e) => {
     animationStatus = false;
 });
 
 
 const startAnimationsAt = (random) => {
-
+    // take a slice of an array and start animation clips with delay
     bodyBonesMixerArr.slice(random).forEach((obj, index) => {
         setTimeout(() => {
             if (random % 2 === 0) {
@@ -296,14 +306,19 @@ function animate() {
 
 
 const render = () => {
+
     const delta = clock.getDelta();
 
+    // body animations
     bodyMesh.skeleton.bones.slice(1).forEach((bone, index) => {
         let multiplier = index < bodySizes.boneCount / 2 ? -2 : +4.6;
+        // rotate each bone in the body
         bone.quaternion.z = Math.PI / bodySizes.boneCount * (Math.sin((clock.getElapsedTime()) * multiplier)) / 4;
     });
     bodyMesh.skeleton.bones[0].rotation.y += 0.002
 
+
+    // arm animations
     arm1Mesh.skeleton.bones.slice(3).forEach((bone, index) => {
         bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime() * 10 + index));
     });
@@ -312,12 +327,15 @@ const render = () => {
         bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime() * 10 + index));
     });
 
+
+    // hair animations
     hairGroup.children.forEach((hair, index) => {
         hair.skeleton.bones.slice(0).forEach(bone => {
             bone.rotation.x = Math.PI / hairSizes.boneCount * (Math.sin(clock.getElapsedTime() * 20 + index) / 5);
         });
     });
 
+    // update/restart animation clips
     if (animationStatus) {
         bodyBonesMixerArr.forEach(el => {
             el.mixer.update((delta));

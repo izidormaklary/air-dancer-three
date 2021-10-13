@@ -1,9 +1,21 @@
-# Three.js Starter
-Courtesy of Bruno Simon of https://threejs-journey.xyz/
+# Airdancer animation
+
+three.js animation with more advanced techniques
+
+---
+- skinned mesh 
+- skeleton 
+- bones
+- animation mixer/clip
+- keyframes
+---
+### Main goals
+
+Understanding the core concepts of the 3d animation world. Instead of working with imported ready-made objects and animation tracks, I tried to find a pure three.js way to do things.
+
+### [deployed version](https://airdancer.netlify.app/)
 
 ## Setup
-Download [Node.js](https://nodejs.org/en/download/).
-Run this followed commands:
 
 ``` bash
 # Install dependencies (only the first time)
