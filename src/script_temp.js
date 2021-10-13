@@ -47,9 +47,9 @@ let arm1Sizes = {
     boneHeight: 4 / 8
 }
 let hairSizes = {
-    height: 1,
+    height: .8,
     boneCount: 3,
-    boneHeight: 1 / 3,
+    boneHeight: .8/3,
     width: 0.2,
     count: 28
 }
@@ -57,6 +57,7 @@ let hairSizes = {
 
 const bodyGeometry = new THREE.CylinderBufferGeometry(1, 1, bodySizes.height, 20, bodySizes.boneCount, true, 30);
 const armGeometry = new THREE.CylinderBufferGeometry(0.3, 0.5, arm1Sizes.height, 10, arm1Sizes.boneCount, true, 30);
+
 
 
 const hairGeometry = new THREE.PlaneBufferGeometry(hairSizes.width, hairSizes.height, 1, 9)
@@ -99,7 +100,7 @@ const arm1Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm1Mesh.rotation.z = Math.PI / 2
 const arm2Mesh = new THREE.SkinnedMesh(armGeometry, material);
 arm2Mesh.rotation.z = -Math.PI / 2
-// const hairMeshSample = new THREE.SkinnedMesh(hairGeometry, material)
+const hairMeshSample = new THREE.SkinnedMesh(hairGeometry, material)
 
 // Bones
 
@@ -187,7 +188,10 @@ bodyMesh.skeleton.bones[30].add(arm2Mesh)
 const hairGroup = new THREE.Group()
 
 
-for (let i = 0; i < hairSizes.count; i++) {
+
+
+
+for (let i = 0; i < hairSizes.count; i++){
     const hairBones = []
 
     const hairFirstBone = new THREE.Bone()
@@ -200,16 +204,17 @@ for (let i = 0; i < hairSizes.count; i++) {
 
     const hairSkeleton = new THREE.Skeleton(hairBones)
 
-    // const hairMesh = hairMeshSample.clone()
-    const hairMesh = new THREE.SkinnedMesh(hairGeometry, material)
+    const hairMesh = hairMeshSample.clone()
 
     hairMesh.add(hairSkeleton.bones[0])
     hairMesh.bind(hairSkeleton)
 
+    const skHelper = new THREE.SkeletonHelper(hairMesh)
+    scene.add(skHelper)
 
 
-    hairMesh.rotation.y = Math.PI / (hairSizes.count / 2) * i
-    hairMesh.translateOnAxis(new THREE.Vector3(0, 0, 1), 1)
+    hairMesh.rotation.y= Math.PI/(hairSizes.count/2)*i
+    hairMesh.translateOnAxis(new THREE.Vector3(0,0,1), 1)
     // scene.add(hairMesh)
     // hairMesh.bind(bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1])
     hairGroup.add(hairMesh)
@@ -219,9 +224,9 @@ for (let i = 0; i < hairSizes.count; i++) {
 
 // Binding hair to body
 // scene.add(hairGroup)
-hairGroup.position.y = hairSizes.height / 2
+hairGroup.position.y= hairSizes.height/2
 
-bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length - 1].add(hairGroup)
+bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1].add(hairGroup)
 // hairGroup.bind(bodyMesh.skeleton.bones[bodyMesh.skeleton.bones.length-1])
 
 
@@ -390,6 +395,7 @@ const startAnimationsAt = (random) => {
 }
 
 
+
 const clock = new THREE.Clock()
 
 
@@ -409,11 +415,13 @@ const render = () => {
     const delta = clock.getDelta();
 
 
-    bodyMesh.skeleton.bones.slice(1).forEach((bone, index) => {
-        let multiplier = index < bodySizes.boneCount / 2 ? -2 : +4.6;
-        bone.quaternion.z = Math.PI / bodySizes.boneCount * (Math.sin((clock.getElapsedTime()) * multiplier))/4
 
-    })
+
+    // bodyMesh.skeleton.bones.slice(1).forEach((bone, index) => {
+    //     let multiplier = index < bodySizes.boneCount / 2 ? -2 : +4.6;
+    //     bone.quaternion.z = Math.PI / bodySizes.boneCount * (Math.sin((clock.getElapsedTime()) * multiplier))/4
+    //
+    // })
 
     // let boneIndex = Math.round((Math.sin(elapsedTime-1)+1) *bodySizes.boneCount/ 2)
     //
@@ -424,21 +432,23 @@ const render = () => {
     // arm2Mesh.skeleton.bones[0].quaternion.z = 20 * bodyMesh.skeleton.bones[30].quaternion.z + 0.5
 
 
+
     // arm1Mesh.skeleton.bones[0].rotation.z = 2 * bodyMesh.skeleton.bones[30].rotation.z - 0.5
     // arm2Mesh.skeleton.bones[0].rotation.z = 5 * bodyMesh.skeleton.bones[30].rotation.z + 1
 
     arm1Skeleton.bones.slice(3).forEach((bone, index) => {
 
-        bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime() *10 + index))
+        bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime()*8+index))
     })
 
     arm2Skeleton.bones.slice(3).forEach((bone, index) => {
-        bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime() * 10 + index))
+        bone.rotation.z = Math.PI / 15 * Math.sin((clock.getElapsedTime()*10+index))
     })
-    bodyMesh.skeleton.bones[0].rotation.y += 0.002
-    hairGroup.children.forEach((hair, index) => {
-        hair.skeleton.bones.slice(0).forEach(bone => {
-            bone.rotation.x = Math.PI / hairSizes.boneCount * (Math.sin(clock.getElapsedTime() * 20 + index) / 5)
+    // bodyMesh.skeleton.bones[0].rotation.y += 0.02
+    //script.js
+    hairGroup.children.forEach((hair, index)=>{
+        hair.skeleton.bones.slice(0).forEach(bone=>{
+            bone.rotation.x = Math.PI/hairSizes.boneCount *(Math.sin( clock.getElapsedTime()*10+index) /5)
         })
     })
 
@@ -451,11 +461,11 @@ const render = () => {
 
     }
 
-    if (!animationStatus) {
-        animationStatus = true
-        let random = Math.floor(Math.random() * bodyBonesMixerArr.length/2);
-        startAnimationsAt(random)
-    }
+    // if (!animationStatus) {
+    //     animationStatus = true
+    //     let random = Math.floor(Math.random() * bodyBonesMixerArr.length/2);
+    //     startAnimationsAt(random)
+    // }
 
     // Update Orbital Controls
     controls.update()
