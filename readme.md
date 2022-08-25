@@ -13,7 +13,9 @@ three.js animation with more advanced techniques
 
 Understanding the core concepts of the 3d animation world. Instead of working with imported ready-made objects and animation tracks, I tried to find a pure three.js way to do things.
 
-### [deployed version](https://airdancer.netlify.app/)
+### [deployed version older](https://airdancer.netlify.app/)
+
+### [deployed version latest](https://air-dancer-three.pages.dev/)
 
 ## Setup
 
